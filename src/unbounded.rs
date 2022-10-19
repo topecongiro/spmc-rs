@@ -111,7 +111,10 @@ impl<T, const SIZE: usize> Receiver<T, SIZE> {
                         Some(next) => {
                             let next = unsafe { next.as_ref() };
                             match next.common.try_recv() {
-                                Ok(x) => return Ok(x),
+                                Ok(x) => {
+                                    // FIXME: update head.
+                                    return Ok(x);
+                                }
                                 Err(_) => head = next,
                             }
                         }
@@ -275,15 +278,15 @@ mod test {
     #[test]
     fn test_unbounded_spmc_multi() {
         const SIZE: usize = 64;
-        const THREAD_NUM: usize = 24;
-        const DROP_COUNT: usize = SIZE * THREAD_NUM * 100;
+        let thread_count: usize = num_cpus::get();
+        let drop_count: usize = SIZE * thread_count * 100;
         let counter = AtomicUsize::new(0);
 
         let recv_count = thread::scope(|s| {
             let (sender, r) = channel::<DropCount, SIZE>();
 
             let mut ts = vec![];
-            for _ in 0..THREAD_NUM {
+            for _ in 0..thread_count {
                 let r = r.clone();
                 ts.push(s.spawn(move || {
                     let mut i = 0usize;
@@ -298,7 +301,7 @@ mod test {
             }
 
             let mut i = 0;
-            while i < DROP_COUNT {
+            while i < drop_count {
                 match sender.send(DropCount { counter: &counter }) {
                     Ok(()) => {
                         i += 1;
@@ -316,8 +319,8 @@ mod test {
             recv_count
         });
 
-        assert_eq!(recv_count, DROP_COUNT);
-        assert_eq!(counter.load(Ordering::SeqCst), DROP_COUNT);
+        assert_eq!(recv_count, drop_count);
+        assert_eq!(counter.load(Ordering::SeqCst), drop_count);
     }
 
     #[test]
@@ -351,13 +354,13 @@ mod test {
     #[test]
     fn test_unbounded_fifo() {
         const LOOP: usize = 1024 * 1024;
-        const THREAD: usize = 12;
+        let thread_count: usize = num_cpus::get();
 
         thread::scope(|s| {
             let (sender, r) = channel::<usize, 64>();
 
             let mut ts = vec![];
-            for _ in 0..THREAD {
+            for _ in 0..thread_count {
                 let r = r.clone();
                 ts.push(s.spawn(move || {
                     let mut prev = 0usize;

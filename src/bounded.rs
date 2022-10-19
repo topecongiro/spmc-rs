@@ -129,8 +129,8 @@ mod test {
     #[test]
     fn test_spmc_multi() {
         const SIZE: usize = 1024;
-        const THREAD_NUM: usize = 24;
-        const DROP_COUNT: usize = SIZE * THREAD_NUM * 100;
+        let thread_num: usize = num_cpus::get();
+        let drop_count: usize = SIZE * thread_num * 100;
         let flag = Arc::new(AtomicBool::new(true));
         let counter = AtomicUsize::new(0);
 
@@ -138,7 +138,7 @@ mod test {
             let (sender, r) = channel::<DropCount, SIZE>();
 
             let mut ts = vec![];
-            for _ in 0..THREAD_NUM {
+            for _ in 0..thread_num {
                 let flag = Arc::clone(&flag);
                 let r = r.clone();
                 ts.push(s.spawn(move || {
@@ -157,7 +157,7 @@ mod test {
             }
 
             let mut i = 0;
-            while i < DROP_COUNT {
+            while i < drop_count {
                 match sender.try_send(DropCount { counter: &counter }) {
                     Ok(()) => {
                         i += 1;
@@ -176,8 +176,8 @@ mod test {
             recv_count
         });
 
-        assert_eq!(recv_count, DROP_COUNT);
-        assert_eq!(counter.load(Ordering::SeqCst), DROP_COUNT);
+        assert_eq!(recv_count, drop_count);
+        assert_eq!(counter.load(Ordering::SeqCst), drop_count);
     }
 
     #[test]
