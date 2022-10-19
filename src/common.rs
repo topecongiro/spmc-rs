@@ -1,9 +1,8 @@
 use std::{
     cell::UnsafeCell,
+    fmt::Debug,
     mem::MaybeUninit,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-    }, fmt::Debug,
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 pub(crate) struct TrySendError<T>(pub(crate) T);

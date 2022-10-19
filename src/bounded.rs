@@ -50,9 +50,10 @@ impl<T, const SIZE: usize> Sender<T, SIZE> {
         if self.inner.recv_count.load(Ordering::Relaxed) == 0 {
             return Err(TrySendError::Disconnected(x));
         }
-        self.inner.common.try_send(x).map_err(|e| {
-            TrySendError::Full(e.0)
-        })
+        self.inner
+            .common
+            .try_send(x)
+            .map_err(|e| TrySendError::Full(e.0))
     }
 }
 
@@ -60,11 +61,13 @@ impl<T, const SIZE: usize> Receiver<T, SIZE> {
     pub fn try_recv(&self) -> Result<T, TryRecvError> {
         match self.inner.common.try_recv() {
             Ok(x) => Ok(x),
-            Err(_) => if self.inner.is_sender_alive.load(Ordering::Relaxed) {
-                Err(TryRecvError::Empty)
-            } else {
-                Err(TryRecvError::Disconnected)
-            },
+            Err(_) => {
+                if self.inner.is_sender_alive.load(Ordering::Relaxed) {
+                    Err(TryRecvError::Empty)
+                } else {
+                    Err(TryRecvError::Disconnected)
+                }
+            }
         }
     }
 }
@@ -86,9 +89,7 @@ impl<T, const SIZE: usize> Drop for Receiver<T, SIZE> {
 
 impl<T, const SIZE: usize> Drop for Sender<T, SIZE> {
     fn drop(&mut self) {
-        self.inner
-            .is_sender_alive
-            .store(false, Ordering::SeqCst);
+        self.inner.is_sender_alive.store(false, Ordering::SeqCst);
     }
 }
 

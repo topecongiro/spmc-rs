@@ -240,10 +240,7 @@ impl<T, const SIZE: usize> Drop for Inner<T, SIZE> {
 
 #[cfg(test)]
 mod test {
-    use std::{
-        sync::atomic::AtomicUsize,
-        thread,
-    };
+    use std::{sync::atomic::AtomicUsize, thread};
 
     use super::*;
 
@@ -358,7 +355,7 @@ mod test {
 
         thread::scope(|s| {
             let (sender, r) = channel::<usize, 64>();
-            
+
             let mut ts = vec![];
             for _ in 0..THREAD {
                 let r = r.clone();
