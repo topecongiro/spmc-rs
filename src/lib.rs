@@ -4,5 +4,4 @@
 pub(crate) mod common;
 
 pub mod bounded;
-pub mod error;
 pub mod unbounded;
