@@ -98,7 +98,7 @@ impl<T, const SIZE: usize> Receiver<T, SIZE> {
     }
 
     fn try_recv_inner(&self) -> Result<T, TryRecvError> {
-        let list = self.inner.list.read();
+        let list = self.inner.list.upgradable_read();
 
         let tail = unsafe { list.tail.as_ref() };
         let mut head = unsafe { list.head.as_ref() };
@@ -108,11 +108,12 @@ impl<T, const SIZE: usize> Receiver<T, SIZE> {
                 while head.id != tail.id && self.inner.len.load(Ordering::Relaxed) > 0 {
                     match head.next {
                         None => return Err(TryRecvError::Empty),
-                        Some(next) => {
-                            let next = unsafe { next.as_ref() };
+                        Some(next_ptr) => {
+                            let next = unsafe { next_ptr.as_ref() };
                             match next.common.try_recv() {
                                 Ok(x) => {
-                                    // FIXME: update head.
+                                    let mut list = RwLockUpgradableReadGuard::upgrade(list);
+                                    list.head = next_ptr;
                                     return Ok(x);
                                 }
                                 Err(_) => head = next,
